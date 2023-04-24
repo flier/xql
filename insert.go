@@ -69,7 +69,7 @@ func (c *ColumnsConstructor) Values(x ...any) *FromConstructor {
 	var values ValueConstructor
 
 	for _, v := range x {
-		values = append(values, typedRowValueExpr(v))
+		values = append(values, newTypedRowValueExpr(v))
 	}
 
 	return &FromConstructor{Columns: c.Columns, Values: values}
@@ -85,7 +85,7 @@ func Values(x ...any) *FromConstructor {
 	var values ValueConstructor
 
 	for _, v := range x {
-		values = append(values, typedRowValueExpr(v))
+		values = append(values, newTypedRowValueExpr(v))
 	}
 
 	return &FromConstructor{Values: values}

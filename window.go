@@ -89,7 +89,7 @@ type WindowFrameExtent struct {
 
 type WindowFrameStart struct {
 	UnboundedPreceding bool
-	Preceding          UnsignedValue
+	Preceding          UnsignedValueExpr
 	CurrentRow         bool
 }
 
@@ -121,7 +121,7 @@ func (b *WindowFrameBetween) String() string {
 type WindowFrameBound struct {
 	Start              *WindowFrameStart
 	UnboundedFollowing bool
-	Following          UnsignedValue
+	Following          UnsignedValueExpr
 }
 
 func (b *WindowFrameBound) String() string {

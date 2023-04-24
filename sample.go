@@ -16,7 +16,7 @@ const (
 
 type SampleClause struct {
 	Method     SampleMethod
-	Percent    NumberValue
+	Percent    NumberValueExpr
 	Repeatable *Repeatable
 }
 
@@ -36,7 +36,7 @@ func (s *SampleClause) String() string {
 }
 
 type Repeatable struct {
-	Repeat NumberValue
+	Repeat NumberValueExpr
 }
 
 func (r *Repeatable) String() string { return fmt.Sprintf("REPEATABLE ( %s )", r.Repeat) }

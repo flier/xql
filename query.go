@@ -16,6 +16,8 @@ type QueryExpr struct {
 
 var _ Expr = &QueryExpr{}
 
+func (q *QueryExpr) expr() Expr { return q }
+
 func (q *QueryExpr) String() string {
 	var b strings.Builder
 

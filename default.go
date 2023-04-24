@@ -88,4 +88,5 @@ type DefaultSpec struct{}
 
 var Default = &DefaultSpec{}
 
+func (s *DefaultSpec) expr() Expr     { return s }
 func (s *DefaultSpec) String() string { return "DEFAULT" }
