@@ -12,31 +12,13 @@ type DeleteStmt struct {
 	Search SearchCond
 }
 
-type DeleteStmtOption interface {
+type DeleteOption interface {
 	applyDeleteStmt(*DeleteStmt)
 }
 
-type ToTargetTable interface {
-	~string | *LocalQualifiedName | *SchemaQualifiedName | *OnlyClause
-}
-
-func DeleteFrom[T ToTargetTable](name T, x ...DeleteStmtOption) *DeleteStmt {
-	var target TargetTable
-
-	switch v := any(name).(type) {
-	case *OnlyClause:
-		target = v
-	case string:
-		target = tableName(v)
-	case *LocalQualifiedName:
-		target = tableName(v)
-	case *SchemaQualifiedName:
-		target = tableName(v)
-	}
-
+func DeleteFrom[T ToTargetTable](target T, x ...DeleteOption) *DeleteStmt {
 	s := &DeleteStmt{
-		Target: target,
-		Search: nil,
+		Target: toTargetTable(target),
 	}
 
 	for _, opt := range x {
