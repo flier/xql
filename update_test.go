@@ -1,6 +1,10 @@
-package xql
+package xql_test
 
-import "fmt"
+import (
+	"fmt"
+
+	. "github.com/flier/xql"
+)
 
 func ExampleUpdate() {
 	fmt.Println(Update("products").Set(Assign("price", 10)).Where(Raw("price = 5")))
