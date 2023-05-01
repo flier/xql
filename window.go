@@ -14,48 +14,46 @@ type WindowDef struct {
 	Spec WindowSpec
 }
 
-func (w *WindowDef) String() string { return fmt.Sprintf("%s AS ( %s )", w.Name, w.Spec) }
+func (w *WindowDef) String() string { return fmt.Sprintf("%s AS %s", w.Name, w.Spec) }
 
+type WindowName = string
 type WindowSpec struct {
-	Name        string
-	PartitionBy WindowPartition
+	Name        WindowName
+	PartitionBy WindowPartitionClause
 	OrderBy     []*SortSpec
 	Frame       *WindowFrameClause
 }
 
 func (w *WindowSpec) String() string {
-	var b strings.Builder
+	var details []string
 
 	if len(w.Name) > 0 {
-		b.WriteString(w.Name)
+		details = append(details, w.Name)
 	}
 
 	if len(w.PartitionBy) > 0 {
-		if b.Len() > 0 {
-			b.WriteByte(' ')
-		}
-		b.WriteString(w.PartitionBy.String())
+		details = append(details, w.PartitionBy.String())
 	}
 
 	if len(w.OrderBy) > 0 {
-		if b.Len() > 0 {
-			b.WriteByte(' ')
-		}
-		b.WriteString(Join(w.OrderBy, ", "))
+		details = append(details, Join(w.OrderBy, ", "))
 	}
 
 	if w.Frame != nil {
-		b.WriteByte(' ')
-		b.WriteString(w.Frame.String())
+		details = append(details, w.Frame.String())
 	}
 
-	return b.String()
+	return fmt.Sprintf("(%s)", strings.Join(details, ", "))
 }
 
-type WindowPartition []*ColumnRef
+type (
+	WindowPartitionClause        WindowPartitionColumnRefList
+	WindowPartitionColumnRefList []WindowPartitionColumnRef
+	WindowPartitionColumnRef     = ColumnRef
+)
 
-func (p WindowPartition) String() string {
-	return fmt.Sprintf("PARTITION BY %s", Join(p, ", "))
+func (p WindowPartitionClause) String() string {
+	return fmt.Sprintf("PARTITION BY %s", strings.Join(p, ", "))
 }
 
 type WindowOrder []*SortSpec

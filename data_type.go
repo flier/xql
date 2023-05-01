@@ -177,7 +177,7 @@ func (t *StringType) WithCharSet(name CharSetName) *StringType {
 }
 
 func (t *StringType) WithCollate(name string) *StringType {
-	t.Collate = &CollateClause{*SchemaQName(name)}
+	t.Collate = &CollateClause{SchemaQName(name).LocalOrSchemaQName()}
 	return t
 }
 

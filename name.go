@@ -32,16 +32,14 @@ func (n *SchemaName) String() string {
 }
 
 type SchemaQualifiedName struct {
-	schema *SchemaName
-	name   string
+	*SchemaName
+	Name string
 }
 
-func (n *SchemaQualifiedName) Name() string                      { return n.name }
-func (n *SchemaQualifiedName) IsLocal() bool                     { return false }
-func (n *SchemaQualifiedName) SchemaName() *SchemaName           { return n.schema }
-func (n *SchemaQualifiedName) LocalQualifier() *LocalQualifier   { return nil }
-func (n *SchemaQualifiedName) SchemaQName() *SchemaQualifiedName { return n }
-func (n *SchemaQualifiedName) LocalQName() *LocalQualifiedName   { return nil }
+func (n *SchemaQualifiedName) LocalOrSchemaQName() *LocalOrSchemaQualifiedName {
+	e := LocalOrSchemaQualifiedName(Right[*LocalQualifiedName](n))
+	return &e
+}
 
 type ToSchemaQualifiedName interface {
 	~string | *SchemaQualifiedName
@@ -50,7 +48,7 @@ type ToSchemaQualifiedName interface {
 func SchemaQName[T ToSchemaQualifiedName](name T) *SchemaQualifiedName {
 	switch v := any(name).(type) {
 	case string:
-		return &SchemaQualifiedName{name: v}
+		return &SchemaQualifiedName{Name: v}
 	case *SchemaQualifiedName:
 		return v
 	default:
@@ -59,46 +57,31 @@ func SchemaQName[T ToSchemaQualifiedName](name T) *SchemaQualifiedName {
 }
 
 func (n *SchemaQualifiedName) String() string {
-	if n.schema != nil {
-		return fmt.Sprintf("%s.%s", n.schema, n.name)
+	if n.SchemaName != nil {
+		return fmt.Sprintf("%s.%s", n.SchemaName, n.Name)
 	}
 
-	return n.name
+	return n.Name
 }
 
-type LocalOrSchemaQualifiedName interface {
-	fmt.Stringer
+type LocalOrSchemaQualifiedName Either[*LocalQualifiedName, *SchemaQualifiedName]
 
-	SchemaName() *SchemaName
-
-	LocalQualifier() *LocalQualifier
-
-	IsLocal() bool
-
-	SchemaQName() *SchemaQualifiedName
-
-	LocalQName() *LocalQualifiedName
-
-	Name() string
+func (n *LocalOrSchemaQualifiedName) String() string {
+	return (*Either[*LocalQualifiedName, *SchemaQualifiedName])(n).String()
 }
-
-var (
-	_ LocalOrSchemaQualifiedName = &SchemaQualifiedName{}
-	_ LocalOrSchemaQualifiedName = &LocalQualifiedName{}
-)
 
 type ToLocalOrSchemaQualifiedName interface {
 	~string | *LocalQualifiedName | *SchemaQualifiedName
 }
 
-func LocalOrSchemaQName[T ToLocalOrSchemaQualifiedName](name T) LocalOrSchemaQualifiedName {
+func LocalOrSchemaQName[T ToLocalOrSchemaQualifiedName](name T) *LocalOrSchemaQualifiedName {
 	switch v := any(name).(type) {
 	case string:
-		return SchemaQName(v)
+		return SchemaQName(v).LocalOrSchemaQName()
 	case *SchemaQualifiedName:
-		return v
+		return v.LocalOrSchemaQName()
 	case *LocalQualifiedName:
-		return v
+		return v.LocalOrSchemaQName()
 	default:
 		panic("unreachable")
 	}
@@ -109,12 +92,11 @@ type LocalQualifier struct{}
 var Local = &LocalQualifier{}
 
 func (l *LocalQualifier) Name(name string) *LocalQualifiedName { return &LocalQualifiedName{l, name} }
-
-func (q LocalQualifier) String() string { return "MODULE" }
+func (q LocalQualifier) String() string                        { return "MODULE" }
 
 type LocalQualifiedName struct {
-	qualifier *LocalQualifier
-	name      string
+	*LocalQualifier
+	Name string
 }
 
 type ToLocalQualifiedName interface {
@@ -132,21 +114,20 @@ func LocalQName[T ToLocalQualifiedName](name T) *LocalQualifiedName {
 	}
 }
 
-func (n *LocalQualifiedName) Name() string                      { return n.name }
-func (n *LocalQualifiedName) IsLocal() bool                     { return n.qualifier != nil }
-func (n *LocalQualifiedName) LocalQualifier() *LocalQualifier   { return n.qualifier }
-func (n *LocalQualifiedName) SchemaName() *SchemaName           { return nil }
-func (n *LocalQualifiedName) SchemaQName() *SchemaQualifiedName { return nil }
-func (n *LocalQualifiedName) LocalQName() *LocalQualifiedName   { return n }
 func (n *LocalQualifiedName) WithQualifier() *LocalQualifiedName {
-	n.qualifier = &LocalQualifier{}
+	n.LocalQualifier = &LocalQualifier{}
 	return n
 }
 
+func (l *LocalQualifiedName) LocalOrSchemaQName() *LocalOrSchemaQualifiedName {
+	n := LocalOrSchemaQualifiedName(Left[*LocalQualifiedName, *SchemaQualifiedName](l))
+	return &n
+}
+
 func (n *LocalQualifiedName) String() string {
-	if n.qualifier != nil {
-		return fmt.Sprintf("%s.%s", n.qualifier, n.name)
+	if n.LocalQualifier != nil {
+		return fmt.Sprintf("%s.%s", n.LocalQualifier, n.Name)
 	}
 
-	return n.name
+	return n.Name
 }

@@ -2,14 +2,14 @@ package xql
 
 import "fmt"
 
-type CollationName = SchemaQualifiedName
+type CollationName = LocalOrSchemaQualifiedName
 
 type CollateClause struct {
-	Name CollationName
+	Name *CollationName
 }
 
 func (c *CollateClause) String() string {
-	return fmt.Sprintf("COLLATE %s", &c.Name)
+	return fmt.Sprintf("COLLATE %s", c.Name)
 }
 
 type CollateOption interface {
@@ -24,8 +24,8 @@ func (o *collateOption) applyStringType(t *StringType) {
 	t.Collate = o.Collate
 }
 
-func Collate(name CollationName) CollateOption {
+func Collate[T ToLocalOrSchemaQualifiedName](name T) CollateOption {
 	return &collateOption{
-		&CollateClause{Name: name},
+		&CollateClause{Name: LocalOrSchemaQName(name)},
 	}
 }

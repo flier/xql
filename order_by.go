@@ -7,13 +7,15 @@ import (
 
 // https://jakewheat.github.io/sql-overview/sql-2016-foundation-grammar.html#order-by-clause
 
-type OrderByClause struct {
-	Sort []*SortSpec
+type OrderByClause SortSpecList
+
+func (e OrderByClause) String() string {
+	return fmt.Sprintf("ORDER BY %s", SortSpecList(e))
 }
 
-func (e *OrderByClause) String() string {
-	return fmt.Sprintf("ORDER BY %s", Join(e.Sort, ", "))
-}
+type SortSpecList []*SortSpec
+
+func (l SortSpecList) String() string { return Join(l, ", ") }
 
 type SortSpec struct {
 	Key ValueExpr

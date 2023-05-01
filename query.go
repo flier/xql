@@ -5,10 +5,15 @@ import (
 	"strings"
 )
 
+type QueryName string
+
+func (n QueryName) tablePrimary() TablePrimary { return n }
+func (n QueryName) String() string             { return string(n) }
+
 type QueryExpr struct {
 	With    *WithClause
 	Body    QueryExprBody
-	OrderBy *OrderByClause
+	OrderBy OrderByClause
 	Limit   *LimitClause
 	Offset  *OffsetClause
 	Fetch   *FetchClause

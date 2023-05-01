@@ -5,34 +5,26 @@ import (
 	"strings"
 )
 
-type JoinedTable struct {
-	*CrossJoin
-	*QualifiedJoin
-	*NaturalJoin
+type JoinedTable interface {
+	TableRef
+
+	joinedTable() JoinedTable
 }
 
-func (j *JoinedTable) String() string {
-	if j.CrossJoin != nil {
-		return j.CrossJoin.String()
-	}
-
-	if j.QualifiedJoin != nil {
-		return j.QualifiedJoin.String()
-	}
-
-	if j.NaturalJoin != nil {
-		return j.NaturalJoin.String()
-	}
-
-	panic("unreachable")
-}
+var (
+	_ JoinedTable = &CrossJoin{}
+	_ JoinedTable = &QualifiedJoin{}
+	_ JoinedTable = &NaturalJoin{}
+)
 
 type CrossJoin struct {
 	Left  TableRef
 	Right TableFactor
 }
 
-func (j *CrossJoin) String() string { return fmt.Sprintf("%s CROSS JOIN %s", j.Left, j.Right) }
+func (j *CrossJoin) tableRef() TableRef       { return j }
+func (j *CrossJoin) joinedTable() JoinedTable { return j }
+func (j *CrossJoin) String() string           { return fmt.Sprintf("%s CROSS JOIN %s", j.Left, j.Right) }
 
 //go:generate stringer -type JoinType -linecomment
 
@@ -48,12 +40,14 @@ const (
 func (t JoinType) Outer() bool { return t != JoinInner }
 
 type QualifiedJoin struct {
-	Left  Either[*TableRef, *PartitionedJoinedTable]
+	Left  Either[TableRef, *PartitionedJoinedTable]
 	Type  JoinType
-	Right Either[*TableRef, *PartitionedJoinedTable]
+	Right Either[TableRef, *PartitionedJoinedTable]
 	Spec  JoinSpec
 }
 
+func (j *QualifiedJoin) tableRef() TableRef       { return j }
+func (j *QualifiedJoin) joinedTable() JoinedTable { return j }
 func (j *QualifiedJoin) String() string {
 	var b strings.Builder
 
@@ -78,14 +72,14 @@ type JoinCond struct {
 func (j *JoinCond) String() string { return fmt.Sprintf("ON %s", j.Search) }
 
 type NamedColumnsJoin struct {
-	Columns []ColumnName
+	Columns ColumnNameList
 	As      string
 }
 
 func (j *NamedColumnsJoin) String() string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "USING (%s)", strings.Join(j.Columns, ", "))
+	fmt.Fprintf(&b, "USING (%s)", j.Columns)
 
 	if j.As != "" {
 		fmt.Fprintf(&b, "AS %s", j.As)
@@ -100,6 +94,8 @@ type NaturalJoin struct {
 	Right TableFactor
 }
 
+func (j *NaturalJoin) tableRef() TableRef       { return j }
+func (j *NaturalJoin) joinedTable() JoinedTable { return j }
 func (j *NaturalJoin) String() string {
 	var b strings.Builder
 
@@ -112,11 +108,13 @@ func (j *NaturalJoin) String() string {
 	return b.String()
 }
 
+type PartitionedJoinColumnRef = ColumnRef
+
 type PartitionedJoinedTable struct {
 	Table   TableFactor
-	Columns []*ColumnRef
+	Columns []PartitionedJoinColumnRef
 }
 
 func (t *PartitionedJoinedTable) String() string {
-	return fmt.Sprintf("%s PARTITION BY %s", t.Table, Join(t.Columns, ", "))
+	return fmt.Sprintf("%s PARTITION BY %s", t.Table, strings.Join(t.Columns, ", "))
 }

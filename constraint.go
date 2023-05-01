@@ -144,7 +144,7 @@ func (s UniqueSpec) applyColumnDef(d *ColumnDef) {
 
 type UniqueConstraintDef struct {
 	Spec    UniqueSpec
-	Columns []ColumnName
+	Columns ColumnNameList
 }
 
 var (
@@ -176,14 +176,14 @@ func (d *UniqueConstraintDef) String() string {
 
 	b.WriteString(d.Spec.String())
 	if len(d.Columns) > 0 {
-		fmt.Fprintf(&b, " (%s)", strings.Join(d.Columns, ", "))
+		fmt.Fprintf(&b, " (%s)", d.Columns)
 	}
 
 	return b.String()
 }
 
 type ReferentialConstraintDef struct {
-	Columns []ColumnName
+	Columns ColumnNameList
 	Spec    ReferencesSpec
 }
 
@@ -195,7 +195,7 @@ func (d *ReferentialConstraintDef) applyTypedTableDef(t *TableDef) {
 }
 
 func (d *ReferentialConstraintDef) String() string {
-	return fmt.Sprintf("FOREIGN KEY (%s) %s", strings.Join(d.Columns, ", "), &d.Spec)
+	return fmt.Sprintf("FOREIGN KEY (%s) %s", d.Columns, &d.Spec)
 }
 
 //go:generate stringer -type=MatchType -linecomment
@@ -210,7 +210,7 @@ const (
 
 type ReferencesSpec struct {
 	Name    TableName
-	Columns []ColumnName
+	Columns ColumnNameList
 	Match   MatchType
 	Action  *ReferentialTriggeredAction
 }
@@ -222,7 +222,7 @@ func (s *ReferencesSpec) String() string {
 	fmt.Fprintf(&b, "REFERENCES %s", s.Name)
 
 	if len(s.Columns) > 0 {
-		fmt.Fprintf(&b, " (%s)", strings.Join(s.Columns, ", "))
+		fmt.Fprintf(&b, " (%s)", s.Columns)
 	}
 
 	if s.Match != MatchSimple {

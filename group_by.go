@@ -24,7 +24,7 @@ func (g *GroupByClause) String() string {
 
 type GroupingElement struct {
 	*OrdinaryGroupingSet
-	*Rollup
+	*RollUp
 	*Cube
 	*GroupingSetsSpec
 }
@@ -34,8 +34,8 @@ func (e *GroupingElement) String() string {
 		return e.OrdinaryGroupingSet.String()
 	}
 
-	if e.Rollup != nil {
-		return e.Rollup.String()
+	if e.RollUp != nil {
+		return e.RollUp.String()
 	}
 
 	if e.Cube != nil {
@@ -69,7 +69,7 @@ type GroupingColumnRef struct {
 func (r *GroupingColumnRef) String() string {
 	var b strings.Builder
 
-	b.WriteString(r.Column.String())
+	b.WriteString(r.Column)
 
 	if r.Collate != nil {
 		fmt.Fprintf(&b, " %s", r.Collate)
@@ -78,11 +78,11 @@ func (r *GroupingColumnRef) String() string {
 	return b.String()
 }
 
-type Rollup struct {
+type RollUp struct {
 	Sets []*OrdinaryGroupingSet
 }
 
-func (r Rollup) String() string {
+func (r RollUp) String() string {
 	return fmt.Sprintf("ROLLUP (%s)", Join(r.Sets, ", "))
 }
 
@@ -104,7 +104,7 @@ func (s *GroupingSetsSpec) String() string {
 
 type GroupingSet struct {
 	*OrdinaryGroupingSet
-	*Rollup
+	*RollUp
 	*Cube
 	*GroupingSetsSpec
 }
@@ -114,8 +114,8 @@ func (s *GroupingSet) String() string {
 		return s.OrdinaryGroupingSet.String()
 	}
 
-	if s.Rollup != nil {
-		return s.Rollup.String()
+	if s.RollUp != nil {
+		return s.RollUp.String()
 	}
 
 	if s.Cube != nil {

@@ -20,11 +20,11 @@ type ToTargetTable interface {
 func toTargetTable[T ToTargetTable](name T) TargetTable {
 	switch v := any(name).(type) {
 	case string:
-		return tableName(v)
+		return newTableName(v)
 	case *LocalQualifiedName:
-		return tableName(v)
+		return newTableName(v)
 	case *SchemaQualifiedName:
-		return tableName(v)
+		return newTableName(v)
 	case *TableName:
 		return v
 	case *OnlyClause:

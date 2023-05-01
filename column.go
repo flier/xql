@@ -5,11 +5,14 @@ import (
 	"strings"
 )
 
-type ColumnName = string
+type ColumnNameList []ColumnName
 
-type ColumnRef string
+func (l ColumnNameList) String() string { return strings.Join(l, ", ") }
 
-func (r ColumnRef) String() string { return string(r) }
+type (
+	ColumnName = string
+	ColumnRef  = string
+)
 
 // ColumnDef define a column of a base table.
 //

@@ -6,12 +6,12 @@ import (
 )
 
 type InsertStmt struct {
-	Target TableName
+	Target *TableName
 	From   InsertFrom
 }
 
 func InsertInto[T ToLocalOrSchemaQualifiedName](name T, from InsertFrom) *InsertStmt {
-	return &InsertStmt{tableName(name), from}
+	return &InsertStmt{newTableName(name), from}
 }
 
 func (i *InsertStmt) String() string {
@@ -23,6 +23,7 @@ type InsertFrom interface {
 }
 
 var (
+	_ InsertFrom = rawExpr("")
 	_ InsertFrom = &FromSubQuery{}
 	_ InsertFrom = &FromConstructor{}
 	_ InsertFrom = &FromDefault{}
@@ -38,7 +39,7 @@ const (
 )
 
 type FromSubQuery struct {
-	Columns    []ColumnName
+	Columns    ColumnNameList
 	Overriding *OverridingClause
 	SubQuery   QueryExpr
 }
@@ -49,7 +50,7 @@ func (f *FromSubQuery) String() string {
 	var b strings.Builder
 
 	if len(f.Columns) > 0 {
-		fmt.Fprintf(&b, "(%s) ", strings.Join(f.Columns, ", "))
+		fmt.Fprintf(&b, "(%s) ", f.Columns)
 	}
 	if f.Overriding != nil {
 		fmt.Fprintf(&b, "%s ", f.Overriding)
@@ -60,7 +61,7 @@ func (f *FromSubQuery) String() string {
 }
 
 type ColumnsConstructor struct {
-	Columns []ColumnName
+	Columns ColumnNameList
 }
 
 func Columns(x ...ColumnName) *ColumnsConstructor { return &ColumnsConstructor{x} }
@@ -76,7 +77,7 @@ func (c *ColumnsConstructor) Values(x ...any) *FromConstructor {
 }
 
 type FromConstructor struct {
-	Columns    []ColumnName
+	Columns    ColumnNameList
 	Overriding *OverridingClause
 	Values     ValueConstructor
 }
@@ -109,7 +110,7 @@ func (f *FromConstructor) String() string {
 	var b strings.Builder
 
 	if len(f.Columns) > 0 {
-		fmt.Fprintf(&b, "(%s) ", strings.Join(f.Columns, ", "))
+		fmt.Fprintf(&b, "(%s) ", f.Columns)
 	}
 	if f.Overriding != nil {
 		fmt.Fprintf(&b, "%s ", f.Overriding)

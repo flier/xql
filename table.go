@@ -5,59 +5,124 @@ import (
 	"strings"
 )
 
-type TableName struct {
-	LocalOrSchemaQualifiedName
+type TableBuilder struct {
+	Name *TableName
 }
+
+func Table[T ToTableName](name T) *TableBuilder {
+	return &TableBuilder{newTableName(name)}
+}
+
+func (b *TableBuilder) As(alias CorrelationName) *DataSource {
+	return &DataSource{
+		Table:       b.Name,
+		Correlation: &CorrelationClause{Name: alias},
+	}
+}
+
+type TableName LocalOrSchemaQualifiedName
 
 type ToTableName = ToLocalOrSchemaQualifiedName
 
-func tableName[T ToTableName](name T) TableName {
-	return TableName{LocalOrSchemaQName(name)}
+func newTableName[T ToTableName](name T) *TableName {
+	return (*TableName)(LocalOrSchemaQName(name))
 }
 
-func (n TableName) targetTable() TargetTable { return n }
+func (n *TableName) tablePrimary() TablePrimary { return n }
+func (n *TableName) targetTable() TargetTable   { return n }
+func (n *TableName) String() string             { return ((*LocalOrSchemaQualifiedName)(n)).String() }
 
-type TableRef struct {
-	*TableFactor
-	*JoinedTable
+type TableRefList []TableRef
+
+func (l TableRefList) String() string { return Join(l, ", ") }
+
+type TableRef interface {
+	fmt.Stringer
+
+	tableRef() TableRef
 }
 
-func (r *TableRef) String() string {
-	if r.TableFactor != nil {
-		return r.TableFactor.String()
-	}
-
-	if r.JoinedTable != nil {
-		return r.JoinedTable.String()
-	}
-
-	panic("unreachable")
-}
+var (
+	_ TableRef = &TableFactor{}
+	_ TableRef = JoinedTable(nil)
+)
 
 type TableFactor struct {
 	Primary TablePrimary
 	Sample  *SampleClause
 }
 
+func (f *TableFactor) tableRef() TableRef { return f }
+
 func (f *TableFactor) String() string {
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "%s", f.Primary)
+
 	if f.Sample == nil {
-		return f.Primary.String()
+		fmt.Fprintf(&b, " %s", f.Sample)
 	}
 
-	return fmt.Sprintf("%s %s", f.Primary, f.Sample)
+	return b.String()
 }
 
-type TablePrimary struct {
-	Name TableName
+type TablePrimary interface {
+	fmt.Stringer
+
+	tablePrimary() TablePrimary
 }
 
-func (t *TablePrimary) String() string {
-	return t.Name.String()
+var (
+	_ TablePrimary = &DataSource{}
+	_ TablePrimary = QueryName("")
+)
+
+type DataSource struct {
+	Table       *TableName
+	Correlation *CorrelationClause
+}
+
+func (n *TableName) As(alias CorrelationName) *DataSource {
+	return &DataSource{
+		Table:       n,
+		Correlation: &CorrelationClause{Name: alias},
+	}
+}
+
+func (s *DataSource) tableRef() TableRef         { return &TableFactor{Primary: s} }
+func (s *DataSource) tablePrimary() TablePrimary { return s }
+func (s *DataSource) String() string {
+	var b strings.Builder
+
+	b.WriteString(s.Table.String())
+
+	if s.Correlation != nil {
+		fmt.Fprintf(&b, " %s", s.Correlation)
+	}
+
+	return b.String()
+}
+
+type CorrelationClause struct {
+	Name    CorrelationName
+	Columns ColumnNameList
+}
+
+func (c *CorrelationClause) String() string {
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "AS %s", c.Name)
+
+	if len(c.Columns) > 0 {
+		fmt.Fprintf(&b, " (%s)", c.Columns)
+	}
+
+	return b.String()
 }
 
 type TableDef struct {
 	Scope            *TableScope
-	Name             TableName
+	Name             *TableName
 	Content          TableContentSource
 	SystemVersioning *SystemVersioningClause
 	OnCommit         *TableCommitAction
@@ -73,7 +138,7 @@ func (f applyTableDefFunc) applyTableDef(t *TableDef) { f(t) }
 
 func CreateTable[T ToTableName](name T, x ...TableDefOption) *TableDef {
 	t := &TableDef{
-		Name: tableName(name),
+		Name: newTableName(name),
 	}
 
 	for _, opt := range x {

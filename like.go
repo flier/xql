@@ -65,14 +65,14 @@ func Including(p LikeProperty) *LikeOption { return &LikeOption{LikeIncluding, p
 func (o *LikeOption) String() string { return fmt.Sprintf("%s %s", o.Action, o.Property) }
 
 type LikeClause struct {
-	Name    TableName
+	Name    *TableName
 	Options []*LikeOption
 }
 
 // Like returns a LIKE clause to create an empty table based on the definition of another table,
 // including any column attributes and indexes defined in the original table:
 func Like[T ToTableName](name T, x ...*LikeOption) *LikeClause {
-	return &LikeClause{tableName(name), x}
+	return &LikeClause{newTableName(name), x}
 }
 
 func (c *LikeClause) tableElement() TableElement { return c }

@@ -44,14 +44,14 @@ func (a *All) selectList() SelectList { return a }
 func (a *All) String() string         { return "*" }
 
 type TargetSpec struct {
-	Name TableName
+	Name *TableName
 	Vars []VarName
 }
 
 type VarName = string
 
 func (s *TargetSpec) String() string {
-	if len(s.Name.Name()) > 0 {
+	if s.Name != nil {
 		return fmt.Sprintf("TABLE %s", s.Name)
 	}
 

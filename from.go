@@ -2,8 +2,6 @@ package xql
 
 import "fmt"
 
-type FromClause struct {
-	Tables []*TableRef
-}
+type FromClause TableRefList
 
-func (f *FromClause) String() string { return fmt.Sprintf("FROM %s", Join(f.Tables, ", ")) }
+func (c FromClause) String() string { return fmt.Sprintf("FROM %s", TableRefList(c)) }

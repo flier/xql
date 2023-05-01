@@ -25,6 +25,10 @@ func Assign[T ToSetTarget](target T, source any) Assignment {
 	}
 }
 
+type SetClauseList []SetClause
+
+func (l SetClauseList) String() string { return Join(l, ", ") }
+
 type SetClause interface {
 	fmt.Stringer
 

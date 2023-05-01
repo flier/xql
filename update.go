@@ -10,7 +10,7 @@ type CorrelationName = string
 type UpdateStmt struct {
 	Target TargetTable
 	Alias  CorrelationName
-	Sets   []SetClause
+	Sets   SetClauseList
 	Cursor *CursorName
 	Search SearchCond
 }
@@ -60,7 +60,7 @@ func (s *UpdateStmt) String() string {
 		fmt.Fprintf(&b, " AS %s", s.Alias)
 	}
 
-	fmt.Fprintf(&b, " SET %s", Join(s.Sets, ", "))
+	fmt.Fprintf(&b, " SET %s", s.Sets)
 
 	if s.Cursor != nil {
 		fmt.Fprintf(&b, " WHERE CURRENT OF %s", s.Cursor)
