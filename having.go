@@ -6,4 +6,6 @@ type HavingClause struct {
 	Search SearchCond
 }
 
-func (h *HavingClause) String() string { return fmt.Sprintf("HAVING %s", h.Search) }
+func Having(cond SearchCond) *HavingClause            { return &HavingClause{cond} }
+func (h *HavingClause) applySelectStmt(s *SelectStmt) { s.expr().Having = h }
+func (h *HavingClause) String() string                { return fmt.Sprintf("HAVING %s", h.Search) }

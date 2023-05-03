@@ -5,12 +5,16 @@ import (
 	"strings"
 )
 
+type ToDataType interface {
+	dataType() DataType
+}
+
 type DataType interface {
 	fmt.Stringer
 
 	ColumnDefOption
 
-	dataType() DataType
+	ToDataType
 }
 
 var (

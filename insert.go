@@ -18,12 +18,18 @@ func (i *InsertStmt) String() string {
 	return fmt.Sprintf("INSERT INTO %s %s", i.Target, i.From)
 }
 
-type InsertFrom interface {
+type ToInsertFrom interface {
 	insertFrom() InsertFrom
 }
 
+type InsertFrom interface {
+	fmt.Stringer
+
+	ToInsertFrom
+}
+
 var (
-	_ InsertFrom = rawExpr("")
+	_ InsertFrom = Raw("")
 	_ InsertFrom = &FromSubQuery{}
 	_ InsertFrom = &FromConstructor{}
 	_ InsertFrom = &FromDefault{}

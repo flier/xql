@@ -9,6 +9,7 @@ import (
 
 type OrderByClause SortSpecList
 
+func (e OrderByClause) applySelectStmt(s *SelectStmt) { s.expr().OrderBy = e }
 func (e OrderByClause) String() string {
 	return fmt.Sprintf("ORDER BY %s", SortSpecList(e))
 }

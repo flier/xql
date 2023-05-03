@@ -36,13 +36,21 @@ type SchemaQualifiedName struct {
 	Name string
 }
 
+func (n *SchemaQualifiedName) expr() Expr { return n }
 func (n *SchemaQualifiedName) LocalOrSchemaQName() *LocalOrSchemaQualifiedName {
 	e := LocalOrSchemaQualifiedName(Right[*LocalQualifiedName](n))
 	return &e
 }
+func (n *SchemaQualifiedName) Join(name string) *SchemaQualifiedName {
+	return &SchemaQualifiedName{n.SchemaName, n.Name + "." + name}
+}
 
 type ToSchemaQualifiedName interface {
 	~string | *SchemaQualifiedName
+}
+
+func QName[T ToSchemaQualifiedName](name T) *SchemaQualifiedName {
+	return SchemaQName(name)
 }
 
 func SchemaQName[T ToSchemaQualifiedName](name T) *SchemaQualifiedName {
@@ -56,6 +64,7 @@ func SchemaQName[T ToSchemaQualifiedName](name T) *SchemaQualifiedName {
 	}
 }
 
+func (n *SchemaQualifiedName) tableRef() TableRef { return n.LocalOrSchemaQName() }
 func (n *SchemaQualifiedName) String() string {
 	if n.SchemaName != nil {
 		return fmt.Sprintf("%s.%s", n.SchemaName, n.Name)
@@ -66,6 +75,8 @@ func (n *SchemaQualifiedName) String() string {
 
 type LocalOrSchemaQualifiedName Either[*LocalQualifiedName, *SchemaQualifiedName]
 
+func (n *LocalOrSchemaQualifiedName) expr() Expr         { return n }
+func (n *LocalOrSchemaQualifiedName) tableRef() TableRef { return (*TableName)(n) }
 func (n *LocalOrSchemaQualifiedName) String() string {
 	return (*Either[*LocalQualifiedName, *SchemaQualifiedName])(n).String()
 }
@@ -118,6 +129,8 @@ func (n *LocalQualifiedName) WithQualifier() *LocalQualifiedName {
 	n.LocalQualifier = &LocalQualifier{}
 	return n
 }
+
+func (l *LocalQualifiedName) tableRef() TableRef { return l.LocalOrSchemaQName() }
 
 func (l *LocalQualifiedName) LocalOrSchemaQName() *LocalOrSchemaQualifiedName {
 	n := LocalOrSchemaQualifiedName(Left[*LocalQualifiedName, *SchemaQualifiedName](l))

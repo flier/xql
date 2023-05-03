@@ -39,6 +39,7 @@ type ColumnDefOption interface {
 
 var (
 	_ ColumnDefOption = CreateUniqueConstraintDefFunc(nil)
+	C                 = Column
 )
 
 func Column(name string, x ...ColumnDefOption) *ColumnDef {
@@ -53,6 +54,14 @@ func Column(name string, x ...ColumnDefOption) *ColumnDef {
 	return d
 }
 
+type ColumnExpr struct {
+	*ColumnDef
+}
+
+func (e *ColumnExpr) expr() Expr     { return e }
+func (e *ColumnExpr) String() string { return e.Name }
+
+func (d *ColumnDef) expr() Expr                 { return &ColumnExpr{d} }
 func (d *ColumnDef) tableElement() TableElement { return d }
 func (d *ColumnDef) applyTableDef(t *TableDef) {
 	l, _ := t.Content.(TableElementList)
@@ -112,10 +121,14 @@ var _ DataType = &DomainName{}
 func (n *DomainName) dataType() DataType          { return n }
 func (n *DomainName) applyColumnDef(d *ColumnDef) { d.Type = n }
 
+type ToColumnValue interface {
+	columnValue() ColumnValue
+}
+
 type ColumnValue interface {
 	fmt.Stringer
 
-	columnValue() ColumnValue
+	ToColumnValue
 }
 
 var (
@@ -254,10 +267,14 @@ func (d *ColumnConstraintDef) String() string {
 	return b.String()
 }
 
+type ToColumnConstraint interface {
+	columnConstraint() ColumnConstraint
+}
+
 type ColumnConstraint interface {
 	fmt.Stringer
 
-	columnConstraint() ColumnConstraint
+	ToColumnConstraint
 }
 
 var (

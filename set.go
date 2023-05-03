@@ -2,17 +2,17 @@ package xql
 
 import "fmt"
 
-type ToSetTarget interface {
-	~string | *MutatedSetClause | []SetTarget
-}
-
 type Assignment interface {
 	fmt.Stringer
 
 	SetClause
 }
 
-func Assign[T ToSetTarget](target T, source any) Assignment {
+type AsSetTarget interface {
+	~string | *MutatedSetClause | []SetTarget
+}
+
+func Assign[T AsSetTarget](target T, source any) Assignment {
 	switch t := any(target).(type) {
 	case string:
 		return newColumnAssignment(t, newTypedRowValueExpr(source))
@@ -29,14 +29,18 @@ type SetClauseList []SetClause
 
 func (l SetClauseList) String() string { return Join(l, ", ") }
 
-type SetClause interface {
-	fmt.Stringer
-
+type ToSetClause interface {
 	setClause() SetClause
 }
 
+type SetClause interface {
+	fmt.Stringer
+
+	ToSetClause
+}
+
 var (
-	_ SetClause = rawExpr("")
+	_ SetClause = Raw("")
 	_ SetClause = &ColumnAssignment{}
 	_ SetClause = &MultiColumnAssignment{}
 )
@@ -77,10 +81,14 @@ func (c *MultiColumnAssignment) String() string {
 	return fmt.Sprintf("(%s) = %s", Join(c.Targets, ", "), c.Source)
 }
 
+type ToSetTarget interface {
+	setTarget() SetTarget
+}
+
 type SetTarget interface {
 	fmt.Stringer
 
-	setTarget() SetTarget
+	ToSetTarget
 }
 
 var (
@@ -90,10 +98,16 @@ var (
 
 type UpdateSource = ValueExpr
 
+type ToUpdateTarget interface {
+	updateTarget() UpdateTarget
+}
+
 type UpdateTarget interface {
+	fmt.Stringer
+
 	SetTarget
 
-	updateTarget() UpdateTarget
+	ToUpdateTarget
 }
 
 var (
@@ -111,10 +125,14 @@ func (c *MutatedSetClause) String() string {
 	return fmt.Sprintf("%s.%s", c.Target, c.Method)
 }
 
+type ToMutatedTarget interface {
+	mutatedTarget() MutatedTarget
+}
+
 type MutatedTarget interface {
 	fmt.Stringer
 
-	mutatedTarget() MutatedTarget
+	ToMutatedTarget
 }
 
 var (

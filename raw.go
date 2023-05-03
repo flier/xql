@@ -1,13 +1,14 @@
 package xql
 
-type rawExpr string
+type (
+	Raw string
+	R   = Raw
+)
 
-func Raw(expr string) rawExpr { return rawExpr(expr) }
-
-func (e rawExpr) expr() Expr                           { return e }
-func (e rawExpr) boolValueExpr() BoolValueExpr         { return e }
-func (e rawExpr) numberValueExpr() NumberValueExpr     { return e }
-func (e rawExpr) unsignedValueExpr() UnsignedValueExpr { return e }
-func (e rawExpr) insertFrom() InsertFrom               { return e }
-func (e rawExpr) setClause() SetClause                 { return e }
-func (e rawExpr) String() string                       { return string(e) }
+func (r Raw) expr() Expr                           { return r }
+func (r Raw) boolValueExpr() BoolValueExpr         { return r }
+func (r Raw) numberValueExpr() NumberValueExpr     { return r }
+func (r Raw) unsignedValueExpr() UnsignedValueExpr { return r }
+func (r Raw) insertFrom() InsertFrom               { return r }
+func (r Raw) setClause() SetClause                 { return r }
+func (r Raw) String() string                       { return string(r) }

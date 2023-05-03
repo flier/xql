@@ -23,7 +23,7 @@ type DefaultOption interface {
 
 var (
 	_ DefaultOption = Literal("")
-	_ DefaultOption = rawExpr("")
+	_ DefaultOption = Raw("")
 	_ DefaultOption = DefaultKind(0)
 	_ DefaultOption = &DateTimeValueFunc{}
 	_ DefaultOption = CreateDateTimeValueFunc(nil)
@@ -33,7 +33,7 @@ var (
 )
 
 func (l Literal) AsDefault() *DefaultClause { return &DefaultClause{l} }
-func (e rawExpr) AsDefault() *DefaultClause { return &DefaultClause{e} }
+func (e Raw) AsDefault() *DefaultClause     { return &DefaultClause{e} }
 
 //go:generate stringer -type=DefaultKind -linecomment
 

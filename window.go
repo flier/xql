@@ -7,14 +7,21 @@ import (
 
 type WindowClause []*WindowDef
 
-func (w WindowClause) String() string { return fmt.Sprintf("WINDOW %s", Join(w, ", ")) }
+func Window(x ...*WindowDef) WindowClause            { return WindowClause(x) }
+func (w WindowClause) applySelectStmt(s *SelectStmt) { s.expr().Window = w }
+func (w WindowClause) String() string                { return fmt.Sprintf("WINDOW %s", Join(w, ", ")) }
+
+type ToWindowDef interface {
+	windowDef() *WindowDef
+}
 
 type WindowDef struct {
 	Name string
 	Spec WindowSpec
 }
 
-func (w *WindowDef) String() string { return fmt.Sprintf("%s AS %s", w.Name, w.Spec) }
+func (w *WindowDef) windowDef() *WindowDef { return w }
+func (w *WindowDef) String() string        { return fmt.Sprintf("%s AS %s", w.Name, w.Spec) }
 
 type WindowName = string
 type WindowSpec struct {

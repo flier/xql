@@ -30,19 +30,27 @@ func newTableName[T ToTableName](name T) *TableName {
 
 func (n *TableName) tablePrimary() TablePrimary { return n }
 func (n *TableName) targetTable() TargetTable   { return n }
+func (n *TableName) tableRef() TableRef         { return n }
 func (n *TableName) String() string             { return ((*LocalOrSchemaQualifiedName)(n)).String() }
 
 type TableRefList []TableRef
 
 func (l TableRefList) String() string { return Join(l, ", ") }
 
-type TableRef interface {
-	fmt.Stringer
-
+type ToTableRef interface {
 	tableRef() TableRef
 }
 
+type TableRef interface {
+	fmt.Stringer
+
+	ToTableRef
+}
+
 var (
+	_ TableRef = &LocalOrSchemaQualifiedName{}
+	_ TableRef = &SchemaQualifiedName{}
+	_ TableRef = &TableName{}
 	_ TableRef = &TableFactor{}
 	_ TableRef = JoinedTable(nil)
 )
@@ -314,12 +322,16 @@ func (l TableElementList) tableContentSource() TableContentSource { return l }
 func (l TableElementList) applyTableDef(t *TableDef)              { t.Content = l }
 func (l TableElementList) String() string                         { return fmt.Sprintf("(\n\t%s\n)", Join(l, ",\n\t")) }
 
+type ToTableElement interface {
+	tableElement() TableElement
+}
+
 type TableElement interface {
 	fmt.Stringer
 
 	TableDefOption
 
-	tableElement() TableElement
+	ToTableElement
 }
 
 var (
@@ -407,12 +419,16 @@ func (d *TableConstraintDef) String() string {
 	return b.String()
 }
 
+type ToTableConstraint interface {
+	tableConstraint() TableConstraint
+}
+
 type TableConstraint interface {
 	fmt.Stringer
 
 	TypedTableDefOption
 
-	tableConstraint() TableConstraint
+	ToTableConstraint
 }
 
 var (

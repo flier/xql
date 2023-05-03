@@ -7,8 +7,12 @@ import (
 
 type GroupByClause struct {
 	Set   SetQuantifier
-	Elems []*GroupingElement
+	Elems []GroupingElement
 }
+
+func GroupBy(x ...GroupingElement) *GroupByClause      { return &GroupByClause{Elems: x} }
+func (g *GroupByClause) Distinct() *GroupByClause      { g.Set = SetDistinct; return g }
+func (g *GroupByClause) applySelectStmt(s *SelectStmt) { s.expr().GroupBy = g }
 
 func (g *GroupByClause) String() string {
 	var b strings.Builder
@@ -22,43 +26,33 @@ func (g *GroupByClause) String() string {
 	return b.String()
 }
 
-type GroupingElement struct {
-	*OrdinaryGroupingSet
-	*RollUp
-	*Cube
-	*GroupingSetsSpec
+type ToGroupingElement interface {
+	groupingElement() GroupingElement
 }
 
-func (e *GroupingElement) String() string {
-	if e.OrdinaryGroupingSet != nil {
-		return e.OrdinaryGroupingSet.String()
-	}
+type GroupingElement interface {
+	fmt.Stringer
 
-	if e.RollUp != nil {
-		return e.RollUp.String()
-	}
-
-	if e.Cube != nil {
-		return e.Cube.String()
-	}
-
-	if e.GroupingSetsSpec != nil {
-		return e.GroupingSetsSpec.String()
-	}
-
-	return "()"
+	ToGroupingElement
 }
 
-type OrdinaryGroupingSet struct {
-	Columns []*GroupingColumnRef
-}
+var (
+	_ GroupingElement = OrdinaryGroupingSet(nil)
+	_ GroupingElement = RollUpClause(nil)
+	_ GroupingElement = CubeClause(nil)
+	_ GroupingElement = &GroupingSetsSpec{}
+)
 
-func (s *OrdinaryGroupingSet) String() string {
-	if len(s.Columns) == 1 {
-		return s.Columns[0].String()
+type OrdinaryGroupingSet []*GroupingColumnRef
+
+func (s OrdinaryGroupingSet) groupingElement() GroupingElement { return s }
+func (s OrdinaryGroupingSet) groupingSet() GroupingSet         { return s }
+func (s OrdinaryGroupingSet) String() string {
+	if len(s) == 1 {
+		return s[0].String()
 	}
 
-	return fmt.Sprintf("(%s)", Join(s.Columns, ", "))
+	return fmt.Sprintf("(%s)", Join(s, ", "))
 }
 
 type GroupingColumnRef struct {
@@ -78,53 +72,37 @@ func (r *GroupingColumnRef) String() string {
 	return b.String()
 }
 
-type RollUp struct {
-	Sets []*OrdinaryGroupingSet
+type RollUpClause []*OrdinaryGroupingSet
+
+func (r RollUpClause) groupingElement() GroupingElement { return r }
+func (r RollUpClause) groupingSet() GroupingSet         { return r }
+func (r RollUpClause) String() string                   { return fmt.Sprintf("ROLLUP (%s)", Join(r, ", ")) }
+
+type CubeClause []*OrdinaryGroupingSet
+
+func (r CubeClause) groupingElement() GroupingElement { return r }
+func (r CubeClause) groupingSet() GroupingSet         { return r }
+func (r CubeClause) String() string                   { return fmt.Sprintf("CUBE (%s)", Join(r, ", ")) }
+
+type GroupingSetsSpec []GroupingSet
+
+func (s GroupingSetsSpec) groupingElement() GroupingElement { return s }
+func (s GroupingSetsSpec) groupingSet() GroupingSet         { return s }
+func (s GroupingSetsSpec) String() string                   { return fmt.Sprintf("GROUPING SETS (%s)", Join(s, ", ")) }
+
+type ToGroupingSet interface {
+	groupingSet() GroupingSet
 }
 
-func (r RollUp) String() string {
-	return fmt.Sprintf("ROLLUP (%s)", Join(r.Sets, ", "))
+type GroupingSet interface {
+	fmt.Stringer
+
+	ToGroupingSet
 }
 
-type Cube struct {
-	Sets []*OrdinaryGroupingSet
-}
-
-func (r Cube) String() string {
-	return fmt.Sprintf("CUBE (%s)", Join(r.Sets, ", "))
-}
-
-type GroupingSetsSpec struct {
-	Sets []*GroupingSet
-}
-
-func (s *GroupingSetsSpec) String() string {
-	return fmt.Sprintf("GROUPING SETS (%s)", Join(s.Sets, ", "))
-}
-
-type GroupingSet struct {
-	*OrdinaryGroupingSet
-	*RollUp
-	*Cube
-	*GroupingSetsSpec
-}
-
-func (s *GroupingSet) String() string {
-	if s.OrdinaryGroupingSet != nil {
-		return s.OrdinaryGroupingSet.String()
-	}
-
-	if s.RollUp != nil {
-		return s.RollUp.String()
-	}
-
-	if s.Cube != nil {
-		return s.Cube.String()
-	}
-
-	if s.GroupingSetsSpec != nil {
-		return s.GroupingSetsSpec.String()
-	}
-
-	return "()"
-}
+var (
+	_ GroupingSet = OrdinaryGroupingSet(nil)
+	_ GroupingSet = RollUpClause(nil)
+	_ GroupingSet = CubeClause(nil)
+	_ GroupingSet = GroupingSetsSpec(nil)
+)

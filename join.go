@@ -5,10 +5,15 @@ import (
 	"strings"
 )
 
+type ToJoinedTable interface {
+	joinedTable() JoinedTable
+}
 type JoinedTable interface {
+	fmt.Stringer
+
 	TableRef
 
-	joinedTable() JoinedTable
+	ToJoinedTable
 }
 
 var (

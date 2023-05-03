@@ -8,4 +8,6 @@ type WhereClause struct {
 	Search SearchCond
 }
 
-func (w *WhereClause) String() string { return fmt.Sprintf("WHERE %s", w.Search) }
+func Where(cond SearchCond) *WhereClause             { return &WhereClause{cond} }
+func (w *WhereClause) applySelectStmt(s *SelectStmt) { s.expr().Where = w }
+func (w *WhereClause) String() string                { return fmt.Sprintf("WHERE %s", w.Search) }

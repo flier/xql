@@ -240,3 +240,32 @@ type rowsValue []rowValue
 
 func (v rowsValue) expr() Expr     { return v }
 func (v rowsValue) String() string { return "\n\t" + Join(v, ",\n\t") }
+
+type CallExpr struct {
+	Name string
+	Args []ValueExpr
+}
+
+func Call(name string, x ...interface{}) *CallExpr {
+	var args []ValueExpr
+
+	for _, v := range x {
+		args = append(args, newTypedRowValueExpr(v))
+	}
+
+	return &CallExpr{name, args}
+}
+
+type CallFunc func(args ...any) *CallExpr
+
+func Func(name string) CallFunc {
+	return func(args ...interface{}) *CallExpr {
+		return Call(name, args...)
+	}
+}
+
+func (e *CallExpr) expr() Expr { return e }
+
+func (e *CallExpr) String() string {
+	return fmt.Sprintf("%s(%s)", e.Name, Join(e.Args, ", "))
+}

@@ -9,6 +9,12 @@ const (
 	SetDistinct                      // DISTINCT
 )
 
+var (
+	Distinct = SetDistinct
+)
+
+func (q SetQuantifier) applySelectStmt(s *SelectStmt) { s.Quantifier = q }
+
 //go:generate stringer -type SetOperation -linecomment
 
 type SetOperation int
