@@ -9,7 +9,16 @@ import (
 
 type OrderByClause SortSpecList
 
-func (e OrderByClause) applySelectStmt(s *SelectStmt) { s.expr().OrderBy = e }
+func OrderBy(x ...ToSortSpec) OrderByClause {
+	var specs SortSpecList
+
+	for _, s := range x {
+		specs = append(specs, s.sortSpec())
+	}
+
+	return OrderByClause(specs)
+}
+
 func (e OrderByClause) String() string {
 	return fmt.Sprintf("ORDER BY %s", SortSpecList(e))
 }
@@ -18,12 +27,17 @@ type SortSpecList []*SortSpec
 
 func (l SortSpecList) String() string { return Join(l, ", ") }
 
+type ToSortSpec interface {
+	sortSpec() *SortSpec
+}
+
 type SortSpec struct {
 	Key ValueExpr
 	OrderingSpec
 	NullOrdering
 }
 
+func (s *SortSpec) sortSpec() *SortSpec { return s }
 func (s *SortSpec) String() string {
 	var b strings.Builder
 

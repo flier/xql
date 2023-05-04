@@ -5,15 +5,15 @@ package xql
 type SetQuantifier int
 
 const (
-	SetAll      SetQuantifier = iota // ALL
-	SetDistinct                      // DISTINCT
+	SetAll         SetQuantifier = iota // ALL
+	SetDistinct                         // DISTINCT
+	SetDistinctRow                      // DISTINCTROW
 )
 
 var (
-	Distinct = SetDistinct
+	Distinct    = SetDistinct
+	DistinctRow = SetDistinctRow
 )
-
-func (q SetQuantifier) applySelectStmt(s *SelectStmt) { s.Quantifier = q }
 
 //go:generate stringer -type SetOperation -linecomment
 

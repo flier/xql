@@ -35,6 +35,12 @@ func Offset(offset SimpleValue, x ...OffsetOption) *OffsetClause {
 	return c
 }
 
+func (c *OffsetClause) Limit(n SimpleValue) *LimitsClause {
+	return &LimitsClause{Limit(n), c}
+}
+
+func (c *OffsetClause) limitsClause() *LimitsClause { return &LimitsClause{OffsetClause: c} }
+
 func (c *OffsetClause) Row() *OffsetClause {
 	row := SuffixRow
 	c.Suffix = &row

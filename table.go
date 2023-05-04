@@ -5,20 +5,9 @@ import (
 	"strings"
 )
 
-type TableBuilder struct {
-	Name *TableName
-}
+type TableLike interface{}
 
-func Table[T ToTableName](name T) *TableBuilder {
-	return &TableBuilder{newTableName(name)}
-}
-
-func (b *TableBuilder) As(alias CorrelationName) *DataSource {
-	return &DataSource{
-		Table:       b.Name,
-		Correlation: &CorrelationClause{Name: alias},
-	}
-}
+type Table interface{}
 
 type TableName LocalOrSchemaQualifiedName
 
@@ -93,6 +82,13 @@ type DataSource struct {
 func (n *TableName) As(alias CorrelationName) *DataSource {
 	return &DataSource{
 		Table:       n,
+		Correlation: &CorrelationClause{Name: alias},
+	}
+}
+
+func (n *SchemaQualifiedName) As(alias CorrelationName) *DataSource {
+	return &DataSource{
+		Table:       (*TableName)(n.LocalOrSchemaQName()),
 		Correlation: &CorrelationClause{Name: alias},
 	}
 }

@@ -7,9 +7,17 @@ import (
 
 type WindowClause []*WindowDef
 
-func Window(x ...*WindowDef) WindowClause            { return WindowClause(x) }
-func (w WindowClause) applySelectStmt(s *SelectStmt) { s.expr().Window = w }
-func (w WindowClause) String() string                { return fmt.Sprintf("WINDOW %s", Join(w, ", ")) }
+func Window(x ...ToWindowDef) WindowClause {
+	var defs []*WindowDef
+
+	for _, d := range x {
+		defs = append(defs, d.windowDef())
+	}
+
+	return WindowClause(defs)
+}
+
+func (w WindowClause) String() string { return fmt.Sprintf("WINDOW %s", Join(w, ", ")) }
 
 type ToWindowDef interface {
 	windowDef() *WindowDef

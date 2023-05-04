@@ -4,9 +4,14 @@ import "fmt"
 
 type FromClause TableRefList
 
-func From(x ...TableRef) FromClause {
-	return FromClause(x)
+func From(x ...ToTableRef) FromClause {
+	var refs []TableRef
+
+	for _, r := range x {
+		refs = append(refs, r.tableRef())
+	}
+
+	return FromClause(refs)
 }
 
-func (c FromClause) applySelectStmt(s *SelectStmt) { s.expr().From = c }
-func (c FromClause) String() string                { return fmt.Sprintf("FROM %s", TableRefList(c)) }
+func (c FromClause) String() string { return fmt.Sprintf("FROM %s", TableRefList(c)) }

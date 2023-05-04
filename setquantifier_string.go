@@ -10,11 +10,12 @@ func _() {
 	var x [1]struct{}
 	_ = x[SetAll-0]
 	_ = x[SetDistinct-1]
+	_ = x[SetDistinctRow-2]
 }
 
-const _SetQuantifier_name = "ALLDISTINCT"
+const _SetQuantifier_name = "ALLDISTINCTDISTINCTROW"
 
-var _SetQuantifier_index = [...]uint8{0, 3, 11}
+var _SetQuantifier_index = [...]uint8{0, 3, 11, 22}
 
 func (i SetQuantifier) String() string {
 	if i < 0 || i >= SetQuantifier(len(_SetQuantifier_index)-1) {

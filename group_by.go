@@ -10,9 +10,17 @@ type GroupByClause struct {
 	Elems []GroupingElement
 }
 
-func GroupBy(x ...GroupingElement) *GroupByClause      { return &GroupByClause{Elems: x} }
-func (g *GroupByClause) Distinct() *GroupByClause      { g.Set = SetDistinct; return g }
-func (g *GroupByClause) applySelectStmt(s *SelectStmt) { s.expr().GroupBy = g }
+func GroupBy(x ...ToGroupingElement) *GroupByClause {
+	var elems []GroupingElement
+
+	for _, e := range x {
+		elems = append(elems, e.groupingElement())
+	}
+
+	return &GroupByClause{Elems: elems}
+}
+
+func (g *GroupByClause) Distinct() *GroupByClause { g.Set = SetDistinct; return g }
 
 func (g *GroupByClause) String() string {
 	var b strings.Builder
