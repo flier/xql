@@ -1,10 +1,5 @@
 package xql
 
-import (
-	"fmt"
-	"strings"
-)
-
 //go:generate stringer -type=DateTimeValueKind -linecomment
 
 type DateTimeValueKind int
@@ -33,6 +28,7 @@ var (
 type CreateDateTimeValueFunc func(precision uint) *DateTimeValueFunc
 
 func (f CreateDateTimeValueFunc) AsDefault() *DefaultClause { return &DefaultClause{f(0)} }
+func (f CreateDateTimeValueFunc) Accept(v Visitor) Visitor  { return v.Visit(f(0)) }
 func (f CreateDateTimeValueFunc) String() string            { return f(0).String() }
 
 func dateTimeValueFunc(kind DateTimeValueKind) CreateDateTimeValueFunc {
@@ -42,14 +38,9 @@ func dateTimeValueFunc(kind DateTimeValueKind) CreateDateTimeValueFunc {
 }
 
 func (f *DateTimeValueFunc) AsDefault() *DefaultClause { return &DefaultClause{f} }
-func (f *DateTimeValueFunc) String() string {
-	var b strings.Builder
 
-	b.WriteString(f.Kind.String())
-
-	if f.Precision > 0 {
-		fmt.Fprintf(&b, "(%d)", f.Precision)
-	}
-
-	return b.String()
+func (f *DateTimeValueFunc) Accept(v Visitor) Visitor {
+	return v.Visit(Keyword(f.Kind.String())).If(f.Precision > 0, Paren(Uint(f.Precision)))
 }
+
+func (f *DateTimeValueFunc) String() string { return XQL(f) }

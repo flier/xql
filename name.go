@@ -44,6 +44,7 @@ func (n *SchemaQualifiedName) LocalOrSchemaQName() *LocalOrSchemaQualifiedName {
 func (n *SchemaQualifiedName) Join(name string) *SchemaQualifiedName {
 	return &SchemaQualifiedName{n.SchemaName, n.Name + "." + name}
 }
+func (n *SchemaQualifiedName) Accept(v Visitor) Visitor { return v.Ident(n) }
 
 type ToSchemaQualifiedName interface {
 	~string | *SchemaQualifiedName
@@ -75,8 +76,9 @@ func (n *SchemaQualifiedName) String() string {
 
 type LocalOrSchemaQualifiedName Either[*LocalQualifiedName, *SchemaQualifiedName]
 
-func (n *LocalOrSchemaQualifiedName) expr() Expr         { return n }
-func (n *LocalOrSchemaQualifiedName) tableRef() TableRef { return (*TableName)(n) }
+func (n *LocalOrSchemaQualifiedName) expr() Expr               { return n }
+func (n *LocalOrSchemaQualifiedName) tableRef() TableRef       { return (*TableName)(n) }
+func (n *LocalOrSchemaQualifiedName) Accept(v Visitor) Visitor { return v.Ident(n) }
 func (n *LocalOrSchemaQualifiedName) String() string {
 	return (*Either[*LocalQualifiedName, *SchemaQualifiedName])(n).String()
 }
@@ -136,6 +138,8 @@ func (l *LocalQualifiedName) LocalOrSchemaQName() *LocalOrSchemaQualifiedName {
 	n := LocalOrSchemaQualifiedName(Left[*LocalQualifiedName, *SchemaQualifiedName](l))
 	return &n
 }
+
+func (n *LocalQualifiedName) Accept(v Visitor) Visitor { return v.Ident(n) }
 
 func (n *LocalQualifiedName) String() string {
 	if n.LocalQualifier != nil {

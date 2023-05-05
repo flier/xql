@@ -413,7 +413,6 @@ var (
 	TinyInt   = &IntType{KindTinyInt, 8}
 	SmallInt  = &IntType{KindSmallInt, 16}
 	MediumInt = &IntType{KindMediumInt, 32}
-	Int       = &IntType{KindInt, 32}
 	Integer   = &IntType{KindInteger, 32}
 	BigInt    = &IntType{KindBigInt, 64}
 )

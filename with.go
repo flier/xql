@@ -1,18 +1,21 @@
 package xql
 
-import "strings"
-
 type WithClause struct {
 	Recursive bool
 }
 
-func (w *WithClause) String() string {
-	var b strings.Builder
+var (
+	With          = &WithClause{}
+	WithRecursive = &WithClause{true}
+)
 
-	b.WriteString("WITH ")
-	if w.Recursive {
-		b.WriteString("RECURSIVE ")
-	}
+const (
+	kWith      = Keyword("WITH")
+	kRecursive = Keyword("RECURSIVE")
+)
 
-	return b.String()
+func (w *WithClause) Accept(v Visitor) Visitor {
+	return v.Visit(kWith).If(w.Recursive, WS, kRecursive)
 }
+
+func (w *WithClause) String() string { return XQL(w) }

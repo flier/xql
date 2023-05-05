@@ -56,7 +56,7 @@ func (f *FromSubQuery) String() string {
 	var b strings.Builder
 
 	if len(f.Columns) > 0 {
-		fmt.Fprintf(&b, "(%s) ", f.Columns)
+		fmt.Fprintf(&b, "%s ", f.Columns)
 	}
 	if f.Overriding != nil {
 		fmt.Fprintf(&b, "%s ", f.Overriding)
@@ -116,7 +116,7 @@ func (f *FromConstructor) String() string {
 	var b strings.Builder
 
 	if len(f.Columns) > 0 {
-		fmt.Fprintf(&b, "(%s) ", f.Columns)
+		fmt.Fprintf(&b, "%s ", f.Columns)
 	}
 	if f.Overriding != nil {
 		fmt.Fprintf(&b, "%s ", f.Overriding)

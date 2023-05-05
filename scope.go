@@ -1,9 +1,10 @@
 package xql
 
-import "fmt"
-
 type ScopeClause struct {
 	Table TableName
 }
 
-func (c *ScopeClause) String() string { return fmt.Sprintf("SCOPE %s", c.Table) }
+const kScope = Keyword("SCOPE")
+
+func (c *ScopeClause) Accept(v Visitor) Visitor { return v.Visit(kScope, WS, &c.Table) }
+func (c *ScopeClause) String() string           { return XQL(c) }

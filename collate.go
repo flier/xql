@@ -1,16 +1,18 @@
 package xql
 
-import "fmt"
-
 type CollationName = LocalOrSchemaQualifiedName
 
 type CollateClause struct {
 	Name *CollationName
 }
 
-func (c *CollateClause) String() string {
-	return fmt.Sprintf("COLLATE %s", c.Name)
+const kCollate = Keyword("COLLATE")
+
+func (c *CollateClause) Accept(v Visitor) Visitor {
+	return v.Visit(kCollate, WS, c.Name)
 }
+
+func (c *CollateClause) String() string { return XQL(c) }
 
 type CollateOption interface {
 	StringTypeOption

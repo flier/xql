@@ -1,10 +1,5 @@
 package xql
 
-import (
-	"fmt"
-	"strings"
-)
-
 type ArrayType struct {
 	Type DataType
 	Caps uint
@@ -12,30 +7,27 @@ type ArrayType struct {
 
 var _ DataType = &ArrayType{}
 
-type ArrayOption func(*ArrayType)
+type CreateArrayFunc func(uint) *ArrayType
 
-func Caps(n uint) ArrayOption { return func(t *ArrayType) { t.Caps = n } }
+func (f CreateArrayFunc) dataType() DataType          { return f }
+func (f CreateArrayFunc) applyColumnDef(d *ColumnDef) { d.Type = f }
+func (f CreateArrayFunc) Accept(v Visitor) Visitor    { return f(0).Accept(v) }
+func (f CreateArrayFunc) String() string              { return XQL(f) }
 
-func ArrayOf(t DataType, x ...ArrayOption) *ArrayType {
-	a := &ArrayType{t, 0}
-
-	for _, opt := range x {
-		opt(a)
+func ArrayOf(t DataType) CreateArrayFunc {
+	return func(caps uint) *ArrayType {
+		return &ArrayType{t, caps}
 	}
-
-	return a
 }
 
 func (t *ArrayType) dataType() DataType          { return t }
 func (t *ArrayType) applyColumnDef(d *ColumnDef) { d.Type = t }
-func (t *ArrayType) String() string {
-	var b strings.Builder
 
-	fmt.Fprintf(&b, "%s ARRAY", t.Type)
+const kArray = Keyword("ARRAY")
 
-	if t.Caps > 0 {
-		fmt.Fprintf(&b, "[%d]", t.Caps)
-	}
-
-	return b.String()
+func (t *ArrayType) Accept(v Visitor) Visitor {
+	return v.DataType(t.Type).WS().Visit(kArray).
+		IfElse(t.Caps > 0, Bracket(Uint(t.Caps)), Bracket)
 }
+
+func (t *ArrayType) String() string { return XQL(t) }

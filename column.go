@@ -7,7 +7,21 @@ import (
 
 type ColumnNameList []ColumnName
 
-func (l ColumnNameList) String() string { return strings.Join(l, ", ") }
+func (l ColumnNameList) Accept(v Visitor) Visitor {
+	if len(l) > 0 {
+		v.Token('(')
+		for i, n := range l {
+			if i > 0 {
+				v.Sep().WS()
+			}
+			v.Visit(QName(n))
+		}
+		v.Token(')')
+	}
+	return v
+}
+
+func (l ColumnNameList) String() string { return XQL(l) }
 
 type (
 	ColumnName = string
@@ -91,26 +105,15 @@ func (d *ColumnDef) applyTypedTableDef(t *TableDef) {
 	c.Elements = append(c.Elements, d.WithOptions())
 }
 
-func (d *ColumnDef) String() string {
-	var b strings.Builder
-
-	b.WriteString(d.Name)
-
-	if d.Type != nil {
-		fmt.Fprintf(&b, " %s", d.Type)
-	}
-	if d.Value != nil {
-		fmt.Fprintf(&b, " %s", d.Value)
-	}
-	if len(d.Constraints) > 0 {
-		fmt.Fprintf(&b, " %s", Join(d.Constraints, " "))
-	}
-	if d.Collate != nil {
-		fmt.Fprintf(&b, " %s", d.Collate)
-	}
-
-	return b.String()
+func (d *ColumnDef) Accept(v Visitor) Visitor {
+	return v.Visit(QName(d.Name)).
+		IfNotNil(d.Type, AcceptFunc(func(v Visitor) Visitor { return v.WS().DataType(d.Type) })).
+		Visit(WS, d.Value).
+		IfNotNil(d.Constraints, WS, Joins(d.Constraints, WS)).
+		Visit(WS, d.Collate)
 }
+
+func (d *ColumnDef) String() string { return XQL(d) }
 
 type DomainName struct {
 	SchemaQualifiedName
@@ -127,6 +130,8 @@ type ToColumnValue interface {
 
 type ColumnValue interface {
 	fmt.Stringer
+
+	Accepter
 
 	ToColumnValue
 }
@@ -147,6 +152,8 @@ const (
 	GeneratedAlways    GeneratedAction = iota // ALWAYS
 	GeneratedByDefault                        // BY DEFAULT
 )
+
+func (a GeneratedAction) Accept(v Visitor) Visitor { return v.Keyword(a) }
 
 type GeneratedSpec struct {
 	Action GeneratedAction
@@ -193,31 +200,36 @@ func (s *IdentityColumnSpec) applyColumnDef(d *ColumnDef) {
 	d.Value = s
 }
 
-func (s *IdentityColumnSpec) String() string {
-	var b strings.Builder
+const (
+	kGenerated  = Keyword("GENERATED")
+	kAsIdentity = Keyword("AS IDENTITY")
+)
 
-	fmt.Fprintf(&b, "GENERATED %s AS IDENTITY", s.Action)
-	if len(s.Options) > 0 {
-		fmt.Fprintf(&b, " (%s)", Join(s.Options, ", "))
-	}
-
-	return b.String()
+func (s *IdentityColumnSpec) Accept(v Visitor) Visitor {
+	return v.Visit(kGenerated, WS, s.Action, WS, kAsIdentity).
+		IfNotNil(s.Options, WS, Paren(Joins(s.Options, Sep)))
 }
+
+func (s *IdentityColumnSpec) String() string { return XQL(s) }
 
 type GenerationClause struct {
 	GenerationRule
 	Value ValueExpr
 }
 
+const kAs = Keyword("AS")
+
 func (c *GenerationClause) columnValue() ColumnValue    { return c }
 func (c *GenerationClause) applyColumnDef(d *ColumnDef) { d.Value = c }
-func (c *GenerationClause) String() string {
-	return fmt.Sprintf("%s AS (%s)", &c.GenerationRule, c.Value)
+func (c *GenerationClause) Accept(v Visitor) Visitor {
+	return v.Visit(&c.GenerationRule, kAs, Paren(Raw(c.Value.String())))
 }
+func (c *GenerationClause) String() string { return XQL(c) }
 
 type GenerationRule struct{}
 
-func (r *GenerationRule) String() string { return "GENERATED ALWAYS" }
+func (r *GenerationRule) Accept(v Visitor) Visitor { return v.Keyword(r) }
+func (r *GenerationRule) String() string           { return "GENERATED ALWAYS" }
 
 type TimestampGenerationRule = GenerationRule
 
@@ -225,21 +237,27 @@ type SystemTimePeriodStartColumnSpec struct {
 	TimestampGenerationRule
 }
 
+const kAsRowStart = Keyword("AS ROW START")
+
 func (s *SystemTimePeriodStartColumnSpec) columnValue() ColumnValue    { return s }
 func (s *SystemTimePeriodStartColumnSpec) applyColumnDef(d *ColumnDef) { d.Value = s }
-func (s *SystemTimePeriodStartColumnSpec) String() string {
-	return fmt.Sprintf("%s AS ROW START", &s.TimestampGenerationRule)
+func (s *SystemTimePeriodStartColumnSpec) Accept(v Visitor) Visitor {
+	return v.Visit(&s.TimestampGenerationRule, WS, kAsRowStart)
 }
+func (s *SystemTimePeriodStartColumnSpec) String() string { return XQL(s) }
 
 type SystemTimePeriodEndColumnSpec struct {
 	TimestampGenerationRule
 }
 
+const kAsRowEnd = Keyword("AS ROW END")
+
 func (s *SystemTimePeriodEndColumnSpec) columnValue() ColumnValue    { return s }
 func (s *SystemTimePeriodEndColumnSpec) applyColumnDef(d *ColumnDef) { d.Value = s }
-func (s *SystemTimePeriodEndColumnSpec) String() string {
-	return fmt.Sprintf("%s AS ROW END", &s.TimestampGenerationRule)
+func (s *SystemTimePeriodEndColumnSpec) Accept(v Visitor) Visitor {
+	return v.Visit(&s.TimestampGenerationRule, WS, kAsRowEnd)
 }
+func (s *SystemTimePeriodEndColumnSpec) String() string { return XQL(s) }
 
 type ColumnConstraintDef struct {
 	Name            *ConstraintNameDef
@@ -251,21 +269,11 @@ func (d *ColumnConstraintDef) applyColumnDef(c *ColumnDef) {
 	c.Constraints = append(c.Constraints, d)
 }
 
-func (d *ColumnConstraintDef) String() string {
-	var b strings.Builder
-
-	if d.Name != nil {
-		fmt.Fprintf(&b, "%s ", d.Name)
-	}
-
-	b.WriteString(d.Constraint.String())
-
-	if d.Characteristics != nil {
-		fmt.Fprintf(&b, " %s", d.Characteristics)
-	}
-
-	return b.String()
+func (d *ColumnConstraintDef) Accept(v Visitor) Visitor {
+	return v.Visit(d.Name, WS).Visit(d.Constraint).Visit(WS, d.Characteristics)
 }
+
+func (d *ColumnConstraintDef) String() string { return XQL(d) }
 
 type ToColumnConstraint interface {
 	columnConstraint() ColumnConstraint
@@ -273,6 +281,8 @@ type ToColumnConstraint interface {
 
 type ColumnConstraint interface {
 	fmt.Stringer
+
+	Accepter
 
 	ToColumnConstraint
 }
@@ -295,6 +305,15 @@ func (o *ColumnOptions) typedTableElement() TypedTableElement { return o }
 func (o *ColumnOptions) applyTypedTableDef(t *TableDef) {
 	c := t.Content.(*TypedTableClause)
 	c.Elements = append(c.Elements, o)
+}
+
+const kWithOptions = Keyword("WITH OPTIONS")
+
+func (o *ColumnOptions) Accept(v Visitor) Visitor {
+	return v.Visit(QName(o.Name), WS, kWithOptions).
+		IfNotNil(o.Scope, WS, o.Scope).
+		IfNotNil(o.Default, WS, o.Default).
+		IfNotNil(o.Constraints, WS, Joins(o.Constraints, WS))
 }
 
 func (o *ColumnOptions) String() string {

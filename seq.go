@@ -7,6 +7,8 @@ import (
 type SequenceGeneratorOption interface {
 	fmt.Stringer
 
+	Accepter
+
 	sequenceGeneratorOption() SequenceGeneratorOption
 }
 
@@ -18,59 +20,83 @@ var (
 	_ SequenceGeneratorOption = SequenceGeneratorCycleOption(false)
 )
 
-type SequenceGeneratorStartWithOption int64
+type SequenceGeneratorStartWithOption int
 
-func StartWith(value int64) SequenceGeneratorStartWithOption {
+func StartWith(value int) SequenceGeneratorStartWithOption {
 	return SequenceGeneratorStartWithOption(value)
 }
 
+const kStartWith = Keyword("START WITH")
+
 func (o SequenceGeneratorStartWithOption) sequenceGeneratorOption() SequenceGeneratorOption { return o }
-func (o SequenceGeneratorStartWithOption) String() string                                   { return fmt.Sprintf("START WITH %d", o) }
+func (o SequenceGeneratorStartWithOption) Accept(v Visitor) Visitor {
+	return v.Visit(kStartWith, Int(int(o)))
+}
+func (o SequenceGeneratorStartWithOption) String() string { return XQL(o) }
 
-type SequenceGeneratorIncrementByOption int64
+type SequenceGeneratorIncrementByOption int
 
-func IncrementBy(value int64) SequenceGeneratorIncrementByOption {
+func IncrementBy(value int) SequenceGeneratorIncrementByOption {
 	return SequenceGeneratorIncrementByOption(value)
 }
+
+const kIncrementBy = Keyword("INCREMENT BY")
 
 func (o SequenceGeneratorIncrementByOption) sequenceGeneratorOption() SequenceGeneratorOption {
 	return o
 }
-func (o SequenceGeneratorIncrementByOption) String() string { return fmt.Sprintf("INCREMENT BY %d", o) }
+func (o SequenceGeneratorIncrementByOption) Accept(v Visitor) Visitor {
+	return v.Visit(kIncrementBy, Int(int(o)))
+}
+func (o SequenceGeneratorIncrementByOption) String() string { return XQL(o) }
 
-type SequenceGeneratorMaxValueOption struct{ Value *int64 }
+type SequenceGeneratorMaxValueOption struct{ Value *int }
 
-func MaxValue(value int64) SequenceGeneratorMaxValueOption {
+func MaxValue(value int) SequenceGeneratorMaxValueOption {
 	return SequenceGeneratorMaxValueOption{&value}
 }
 
 var NoMaxValue = &SequenceGeneratorMaxValueOption{nil}
 
+const (
+	kNoMaxValue = Keyword("NO MAXVALUE")
+	kMaxValue   = Keyword("MAXVALUE")
+)
+
 func (o SequenceGeneratorMaxValueOption) sequenceGeneratorOption() SequenceGeneratorOption { return o }
-func (o SequenceGeneratorMaxValueOption) String() string {
+func (o SequenceGeneratorMaxValueOption) Accept(v Visitor) Visitor {
 	if o.Value == nil {
-		return "NO MAXVALUE"
+		return v.Visit(kNoMaxValue)
 	}
 
-	return fmt.Sprintf("MAXVALUE %d", *o.Value)
+	return v.Visit(kMaxValue, WS, Int(*o.Value))
 }
 
-type SequenceGeneratorMinValueOption struct{ Value *int64 }
+func (o SequenceGeneratorMaxValueOption) String() string { return XQL(o) }
 
-func MinValue(value int64) SequenceGeneratorMinValueOption {
+type SequenceGeneratorMinValueOption struct{ Value *int }
+
+func MinValue(value int) SequenceGeneratorMinValueOption {
 	return SequenceGeneratorMinValueOption{&value}
 }
 
 var NoMinValue = &SequenceGeneratorMinValueOption{nil}
 
+const (
+	kNoMinValue = Keyword("NO MINVALUE")
+	kMinValue   = Keyword("MINVALUE")
+)
+
 func (o *SequenceGeneratorMinValueOption) sequenceGeneratorOption() SequenceGeneratorOption { return o }
-func (o SequenceGeneratorMinValueOption) String() string {
+func (o SequenceGeneratorMinValueOption) Accept(v Visitor) Visitor {
 	if o.Value == nil {
-		return "NO MINVALUE"
+		return v.Visit(kNoMinValue)
 	}
 
-	return fmt.Sprintf("MINVALUE %d", *o.Value)
+	return v.Visit(kMinValue, WS, Int(*o.Value))
 }
+
+func (o SequenceGeneratorMinValueOption) String() string { return XQL(o) }
 
 type SequenceGeneratorCycleOption bool
 
@@ -79,12 +105,19 @@ var (
 	NoCycle = SequenceGeneratorCycleOption(false)
 )
 
+const (
+	kCycle   = Keyword("CYCLE")
+	kNoCycle = Keyword("NO CYCLE")
+)
+
 func (o SequenceGeneratorCycleOption) sequenceGeneratorOption() SequenceGeneratorOption { return o }
 
-func (o SequenceGeneratorCycleOption) String() string {
+func (o SequenceGeneratorCycleOption) Accept(v Visitor) Visitor {
 	if o {
-		return "CYCLE"
+		return v.Visit(kCycle)
 	}
 
-	return "NO CYCLE"
+	return v.Visit(kNoCycle)
 }
+
+func (o SequenceGeneratorCycleOption) String() string { return XQL(o) }

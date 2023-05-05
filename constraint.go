@@ -2,7 +2,6 @@ package xql
 
 import (
 	"fmt"
-	"strings"
 )
 
 type ConstraintName = SchemaQualifiedName
@@ -28,9 +27,13 @@ func Constraint[T ~string | *SchemaQualifiedName](name T) *ConstraintNameDef {
 	return &ConstraintNameDef{constraintName(name)}
 }
 
-func (d *ConstraintNameDef) String() string {
-	return fmt.Sprintf("CONSTRAINT %s", &d.Name)
+const kConstraint = Keyword("CONSTRAINT")
+
+func (d *ConstraintNameDef) Accept(v Visitor) Visitor {
+	return v.Visit(kConstraint, WS, &d.Name)
 }
+
+func (d *ConstraintNameDef) String() string { return XQL(d) }
 
 func (d *ConstraintNameDef) NotNull() *ColumnConstraintDef {
 	return &ColumnConstraintDef{Name: d, Constraint: NotNull}
@@ -74,47 +77,55 @@ const (
 	CheckTimeInitiallyImmediate                            // INITIALLY IMMEDIATE
 )
 
+func (c *ConstraintCheckTime) Accept(v Visitor) Visitor {
+	return v.Visit(Keyword(c.String()))
+}
+
 type ConstraintCharacteristics struct {
 	CheckTime   *ConstraintCheckTime
 	Deferrable  *ConstraintDeferrable
 	Enforcement *ConstraintEnforcement
 }
 
-func (c *ConstraintCharacteristics) String() string {
-	var v []string
-
-	if c.CheckTime != nil {
-		v = append(v, c.CheckTime.String())
-	}
-	if c.Deferrable != nil {
-		v = append(v, c.Deferrable.String())
-	}
-	if c.Enforcement != nil {
-		v = append(v, c.Enforcement.String())
-	}
-
-	return strings.Join(v, " ")
+func (c *ConstraintCharacteristics) Accept(v Visitor) Visitor {
+	return v.Visit(c.CheckTime, WS).Visit(c.Deferrable, WS).Visit(c.Enforcement)
 }
+
+func (c *ConstraintCharacteristics) String() string { return XQL(c) }
 
 type ConstraintDeferrable bool
 
-func (d ConstraintDeferrable) String() string {
-	if d {
-		return "DEFERRABLE"
+const (
+	kDeferrable    = Keyword("DEFERRABLE")
+	kNotDeferrable = Keyword("NOT DEFERRABLE")
+)
+
+func (d *ConstraintDeferrable) Accept(v Visitor) Visitor {
+	if *d {
+		return v.Visit(kDeferrable)
 	}
 
-	return "NOT DEFERRABLE"
+	return v.Visit(kNotDeferrable)
 }
+
+func (d *ConstraintDeferrable) String() string { return XQL(d) }
 
 type ConstraintEnforcement bool
 
-func (c ConstraintEnforcement) String() string {
-	if c {
-		return "ENFORCED"
+const (
+	kEnforced    = Keyword("ENFORCED")
+	kNotEnforced = Keyword("NOT ENFORCED")
+)
+
+func (c *ConstraintEnforcement) Accept(v Visitor) Visitor {
+	if *c {
+		return v.Visit(kEnforced)
 	}
 
-	return "NOT ENFORCED"
+	return v.Visit(kNotEnforced)
 }
+
+func (c *ConstraintEnforcement) String() string { return XQL(c) }
 
 type NotNullConstraint struct{}
 
@@ -126,7 +137,10 @@ func (c *NotNullConstraint) applyColumnDef(d *ColumnDef) {
 	d.Constraints = append(d.Constraints, &ColumnConstraintDef{Constraint: NotNull})
 }
 
-func (c *NotNullConstraint) String() string { return "NOT NULL" }
+const kNotNull = Keyword("NOT NULL")
+
+func (c *NotNullConstraint) Accept(v Visitor) Visitor { return v.Visit(kNotNull) }
+func (c *NotNullConstraint) String() string           { return XQL(c) }
 
 //go:generate stringer -type=UniqueSpec -linecomment
 
@@ -141,6 +155,7 @@ func (s UniqueSpec) columnConstraint() ColumnConstraint { return s }
 func (s UniqueSpec) applyColumnDef(d *ColumnDef) {
 	d.Constraints = append(d.Constraints, &ColumnConstraintDef{Constraint: s})
 }
+func (s UniqueSpec) Accept(v Visitor) Visitor { return v.Visit(Keyword(s.String())) }
 
 type UniqueConstraintDef struct {
 	Spec    UniqueSpec
@@ -171,16 +186,10 @@ func (d *UniqueConstraintDef) applyTypedTableDef(t *TableDef) {
 }
 
 func (d *UniqueConstraintDef) columnConstraint() ColumnConstraint { return d.Spec }
-func (d *UniqueConstraintDef) String() string {
-	var b strings.Builder
-
-	b.WriteString(d.Spec.String())
-	if len(d.Columns) > 0 {
-		fmt.Fprintf(&b, " (%s)", d.Columns)
-	}
-
-	return b.String()
+func (d *UniqueConstraintDef) Accept(v Visitor) Visitor {
+	return v.Keyword(d.Spec).Visit(WS, d.Columns)
 }
+func (d *UniqueConstraintDef) String() string { return XQL(d) }
 
 type ReferentialConstraintDef struct {
 	Columns ColumnNameList
@@ -194,9 +203,13 @@ func (d *ReferentialConstraintDef) applyTypedTableDef(t *TableDef) {
 	c.Elements = append(c.Elements, &TableConstraintDef{Constraint: d})
 }
 
-func (d *ReferentialConstraintDef) String() string {
-	return fmt.Sprintf("FOREIGN KEY (%s) %s", d.Columns, &d.Spec)
+const kForeignKey = Keyword("FOREIGN KEY")
+
+func (d *ReferentialConstraintDef) Accept(v Visitor) Visitor {
+	return v.Visit(kForeignKey, WS, d.Columns, WS, &d.Spec)
 }
+
+func (d *ReferentialConstraintDef) String() string { return XQL(d) }
 
 //go:generate stringer -type=MatchType -linecomment
 
@@ -215,26 +228,20 @@ type ReferencesSpec struct {
 	Action  *ReferentialTriggeredAction
 }
 
+const (
+	kReferences = Keyword("REFERENCES")
+	kMatch      = Keyword("MATCH")
+)
+
 func (s *ReferencesSpec) columnConstraint() ColumnConstraint { return s }
-func (s *ReferencesSpec) String() string {
-	var b strings.Builder
-
-	fmt.Fprintf(&b, "REFERENCES %s", s.Name)
-
-	if len(s.Columns) > 0 {
-		fmt.Fprintf(&b, " (%s)", s.Columns)
-	}
-
-	if s.Match != MatchSimple {
-		fmt.Fprintf(&b, " MATCH %s", s.Match)
-	}
-
-	if s.Action != nil {
-		fmt.Fprintf(&b, " %s", s.Action)
-	}
-
-	return b.String()
+func (s *ReferencesSpec) Accept(v Visitor) Visitor {
+	return v.Visit(kReferences, WS, &s.Name).
+		IfNotNil(s.Columns, WS, Bracket(s.Columns)).
+		If(s.Match != MatchSimple, WS, kMatch, WS, Keyword(s.Match.String())).
+		IfNotNil(s.Action, WS, s.Action)
 }
+
+func (s *ReferencesSpec) String() string { return XQL(s) }
 
 //go:generate stringer -type=ReferentialAction -linecomment
 
@@ -253,19 +260,12 @@ type ReferentialTriggeredAction struct {
 	OnDelete ReferentialAction
 }
 
-func (r *ReferentialTriggeredAction) String() string {
-	var v []string
-
-	if r.OnUpdate != NoAction {
-		v = append(v, fmt.Sprintf("ON UPDATE %s", r.OnUpdate))
-	}
-
-	if r.OnDelete != NoAction {
-		v = append(v, fmt.Sprintf("ON DELETE %s", r.OnDelete))
-	}
-
-	return strings.Join(v, " ")
+func (r *ReferentialTriggeredAction) Accept(v Visitor) Visitor {
+	return v.If(r.OnUpdate != NoAction, Keyword("ON UPDATE"), WS, Keyword(r.OnUpdate.String())).
+		If(r.OnDelete != NoAction, Keyword("ON DELETE"), WS, Keyword(r.OnDelete.String()))
 }
+
+func (r *ReferentialTriggeredAction) String() string { return XQL(r) }
 
 type CheckConstraintDef struct {
 	Cond SearchCond
@@ -274,6 +274,8 @@ type CheckConstraintDef struct {
 func Check(cond SearchCond) *CheckConstraintDef {
 	return &CheckConstraintDef{Cond: cond}
 }
+
+const kCheck = Keyword("CHECK")
 
 func (c *CheckConstraintDef) columnConstraint() ColumnConstraint { return c }
 func (c *CheckConstraintDef) applyColumnDef(d *ColumnDef) {
@@ -284,4 +286,7 @@ func (c *CheckConstraintDef) applyTypedTableDef(t *TableDef) {
 	tc.Elements = append(tc.Elements, &TableConstraintDef{Constraint: c})
 }
 func (c *CheckConstraintDef) tableConstraint() TableConstraint { return c }
-func (c *CheckConstraintDef) String() string                   { return fmt.Sprintf("CHECK (%s)", c.Cond) }
+func (c *CheckConstraintDef) Accept(v Visitor) Visitor {
+	return v.Visit(kCheck, WS, Paren(Raw(c.Cond.String())))
+}
+func (c *CheckConstraintDef) String() string { return XQL(c) }

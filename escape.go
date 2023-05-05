@@ -12,7 +12,10 @@ const (
 )
 
 func EscapeName(name string, quote rune) string {
-	var needQuote bool
+	return Quote(name, quote, false)
+}
+
+func Quote(name string, quote rune, needQuote bool) string {
 	var hasQuote bool
 	var digits int
 

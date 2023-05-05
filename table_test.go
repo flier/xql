@@ -40,7 +40,7 @@ func ExampleCreateTempTable() {
 
 func ExamplePeriodForSystemTime() {
 	fmt.Println(CreateTable("Department",
-		Column("DeptID", Int, NotNull, PrimaryKey),
+		Column("DeptID", Integer, NotNull, PrimaryKey),
 		Column("DeptName", VarChar(50), NotNull),
 		Column("ValidFrom", DateTime2, Generated.Always().AsRowStart(), NotNull),
 		Column("ValidTo", DateTime2, Generated.Always().AsRowEnd(), NotNull),
@@ -48,7 +48,7 @@ func ExamplePeriodForSystemTime() {
 	).WithSystemVersioningOn())
 	// Output:
 	// CREATE TABLE Department (
-	// 	DeptID INT NOT NULL PRIMARY KEY,
+	// 	DeptID INTEGER NOT NULL PRIMARY KEY,
 	// 	DeptName VARCHAR(50) NOT NULL,
 	// 	ValidFrom DATETIME2 GENERATED ALWAYS AS ROW START NOT NULL,
 	// 	ValidTo DATETIME2 GENERATED ALWAYS AS ROW END NOT NULL,

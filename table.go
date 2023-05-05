@@ -20,6 +20,7 @@ func newTableName[T ToTableName](name T) *TableName {
 func (n *TableName) tablePrimary() TablePrimary { return n }
 func (n *TableName) targetTable() TargetTable   { return n }
 func (n *TableName) tableRef() TableRef         { return n }
+func (n *TableName) Accept(v Visitor) Visitor   { return v.Ident(n) }
 func (n *TableName) String() string             { return ((*LocalOrSchemaQualifiedName)(n)).String() }
 
 type TableRefList []TableRef
@@ -118,7 +119,7 @@ func (c *CorrelationClause) String() string {
 	fmt.Fprintf(&b, "AS %s", c.Name)
 
 	if len(c.Columns) > 0 {
-		fmt.Fprintf(&b, " (%s)", c.Columns)
+		fmt.Fprintf(&b, " %s", c.Columns)
 	}
 
 	return b.String()

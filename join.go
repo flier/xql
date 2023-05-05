@@ -84,7 +84,7 @@ type NamedColumnsJoin struct {
 func (j *NamedColumnsJoin) String() string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "USING (%s)", j.Columns)
+	fmt.Fprintf(&b, "USING %s", j.Columns)
 
 	if j.As != "" {
 		fmt.Fprintf(&b, "AS %s", j.As)
