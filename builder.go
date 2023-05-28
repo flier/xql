@@ -13,6 +13,12 @@ func (f AcceptFactoryFunc) Accept(v Visitor) Visitor {
 	return f()(v)
 }
 
+func Stringer(s fmt.Stringer) Accepter {
+	return AcceptFunc(func(v Visitor) Visitor {
+		return v.Raw(s.String())
+	})
+}
+
 var (
 	Bracket = AcceptFactoryFunc(func(x ...Accepter) AcceptFunc {
 		return func(v Visitor) Visitor {
